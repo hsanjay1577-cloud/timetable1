@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>School Timetable Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+/* ===== School Timetable Generator - styles ===== */
+:root {
+  --accent: #1a5f7a;
+  --accent-dark: #134a5f;
+  --accent-soft: #e6f1f5;
+  --bg: #f5f7f9;
+  --card: #ffffff;
+  --text: #1c2b33;
+  --muted: #5b6b75;
+  --line: #dbe3e8;
+  --danger: #b3261e;
+  --radius: 14px;
+  --shadow: 0 2px 10px rgba(20, 50, 70, 0.07);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.container { width: min(1120px, 100% - 32px); margin: 0 auto; }
+[hidden] { display: none !important; }
+
+/* ----- Header / footer ----- */
+.site-header { background: var(--card); border-bottom: 1px solid var(--line); }
+.header-inner { display: flex; align-items: center; gap: 16px; padding: 20px 0; }
+.logo-icon {
+  display: grid; place-items: center; width: 52px; height: 52px; flex: none;
+  border-radius: 14px; background: var(--accent); color: #fff; font-size: 24px;
+}
+.site-header h1 { margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.01em; }
+.site-header p { margin: 2px 0 0; color: var(--muted); }
+.site-footer { margin-top: 32px; padding: 24px 0; border-top: 1px solid var(--line); background: var(--card); text-align: center; }
+.site-footer p { margin: 4px 0 0; color: var(--muted); font-size: 0.9rem; }
+
+/* ----- Cards ----- */
+main { padding: 24px 0 0; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px;
+}
+.card h2 { margin: 0 0 16px; font-size: 1.2rem; }
+.card h3 { margin: 24px 0 12px; font-size: 1rem; color: var(--muted); }
+.card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+.saved-label { color: var(--muted); font-size: 0.85rem; }
+
+/* ----- Forms ----- */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+label { font-weight: 600; font-size: 0.9rem; }
+input, select {
+  font: inherit; padding: 10px 12px; border: 1px solid #b9c6ce; border-radius: 10px;
+  background: #fff; color: var(--text); width: 100%;
+}
+input[aria-invalid="true"] { border-color: var(--danger); }
+.error { color: var(--danger); font-size: 0.82rem; min-height: 1.1em; }
+
+:focus-visible { outline: 3px solid #f2a93b; outline-offset: 2px; }
+
+/* ----- Buttons ----- */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; font: inherit; font-weight: 600;
+  padding: 10px 16px; border-radius: 10px; border: 1px solid #b9c6ce;
+  background: #fff; color: var(--text); cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+.btn-danger { color: var(--danger); border-color: #e3b5b2; }
+.btn-danger:hover { background: #fbeceb; border-color: var(--danger); }
+.btn-small { padding: 6px 12px; font-size: 0.9rem; }
+.actions, .toolbar, .dialog-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.toolbar { margin: 0 0 20px; }
+
+.restore-bar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--accent-soft); border: 1px solid #b7d4df; border-radius: var(--radius);
+  padding: 12px 16px; margin-bottom: 20px;
+}
+
+/* ----- Timetable ----- */
+.tt-info { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 2px solid var(--accent); }
+.tt-info .tt-school { font-size: 1.3rem; font-weight: 800; width: 100%; }
+.tt-info span { color: var(--muted); font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+table.timetable { width: 100%; min-width: 720px; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+.timetable th { padding: 10px 6px; font-size: 0.9rem; }
+.timetable thead th { background: var(--accent); color: #fff; border-radius: 8px; }
+.timetable thead th:first-child { width: 120px; }
+.timetable tbody th {
+  background: var(--accent-soft); border-radius: 8px; font-weight: 600; font-size: 0.8rem;
+  color: var(--accent-dark); text-align: center;
+}
+.timetable tbody th span { display: block; font-weight: 800; font-size: 0.9rem; }
+.timetable td { padding: 0; vertical-align: top; }
+.break-cell {
+  background: repeating-linear-gradient(45deg, #fdf3dc, #fdf3dc 8px, #fbeacb 8px, #fbeacb 16px);
+  border-radius: 8px; text-align: center; padding: 8px; font-weight: 800; color: #7a5a12; letter-spacing: 0.05em;
+}
+.slot {
+  display: block; width: 100%; min-height: 76px; text-align: left; font: inherit; cursor: pointer;
+  padding: 8px 10px; border: 0; border-left: 4px solid var(--bar, var(--line));
+  border-radius: 8px; background: var(--bg-slot, #fff); color: var(--text);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.slot:hover { box-shadow: 0 2px 8px rgba(20, 50, 70, 0.18); transform: translateY(-1px); }
+.slot-subject { font-weight: 800; font-size: 0.95rem; line-height: 1.25; }
+.slot-meta { font-size: 0.8rem; color: #3d4d56; }
+.slot-empty { border: 1px dashed #b9c6ce; background: #fafcfd; color: var(--muted); font-weight: 600; text-align: center; padding-top: 26px; }
+.hint { color: var(--muted); font-size: 0.85rem; margin: 12px 0 0; }
+
+.empty-state { text-align: center; padding: 40px 16px; }
+.empty-icon { font-size: 3rem; }
+.empty-state h3 { margin: 8px 0 4px; font-size: 1.2rem; color: var(--text); }
+.empty-state p { margin: 0 0 18px; color: var(--muted); }
+
+.steps { margin: 0; padding-left: 20px; color: var(--muted); }
+.steps li { margin-bottom: 6px; }
+.steps strong { color: var(--text); }
+
+/* ----- Dialogs ----- */
+dialog { border: 0; border-radius: var(--radius); padding: 24px; width: min(440px, 92vw); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25); color: var(--text); }
+dialog::backdrop { background: rgba(20, 35, 45, 0.5); }
+dialog h2 { margin: 0 0 4px; font-size: 1.15rem; }
+.dialog-sub { margin: 0 0 16px; color: var(--muted); font-size: 0.9rem; }
+dialog .field { margin-bottom: 12px; }
+
+/* ----- Toasts ----- */
+.toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 50; max-width: calc(100vw - 32px); }
+.toast { background: #1c2b33; color: #fff; padding: 12px 16px; border-radius: 10px; box-shadow: var(--shadow); font-weight: 600; border-left: 5px solid #5fbf8f; }
+.toast.error { border-left-color: #ef7b72; }
+
+/* Box used to render the PDF */
+.pdf-export { width: 1120px; background: #fff; padding: 16px; font-family: "Manrope", Arial, sans-serif; color: var(--text); }
+.pdf-export .table-wrap { overflow: visible; }
+.pdf-export table.timetable { min-width: 0; }
+.pdf-export .slot-empty { visibility: hidden; }
+
+/* ----- Responsive ----- */
+@media (max-width: 640px) {
+  .site-header h1 { font-size: 1.25rem; }
+  .card { padding: 16px; }
+  .btn { padding: 10px 12px; }
+  .toolbar .btn { flex: 1 1 calc(50% - 10px); justify-content: center; }
+}
+
+/* ----- Print: A4 landscape, timetable only ----- */
+@page { size: A4 landscape; margin: 10mm; }
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: #fff; }
+  .no-print { display: none !important; }
+  .container { width: 100%; }
+  main { padding: 0; }
+  .card { border: 0; box-shadow: none; padding: 0; margin: 0; }
+  .table-wrap { overflow: visible; }
+  table.timetable { min-width: 0; font-size: 11px; }
+  .slot { min-height: 0; padding: 4px 6px; box-shadow: none; transform: none; }
+  .slot-subject { font-size: 12px; }
+  .slot-meta { font-size: 10px; }
+  .slot-empty { visibility: hidden; }
+  .timetable tr { break-inside: avoid; }
+}
+  </style>
+</head>
+<body>
+  <header class="site-header no-print">
+    <div class="container header-inner">
+      <span class="logo-icon" aria-hidden="true"><i class="fa-solid fa-calendar-days"></i></span>
+      <div>
+        <h1>School Timetable Generator</h1>
+        <p>Create and organize your weekly class timetable</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="restoreBar" class="restore-bar no-print" hidden>
+      <span id="restoreText">A saved timetable was found.</span>
+      <button type="button" class="btn btn-small" id="restoreBtn"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restore it</button>
+    </div>
+
+    <section class="card no-print" id="setupCard" aria-labelledby="setupTitle">
+      <h2 id="setupTitle">Class details</h2>
+      <form id="setupForm" novalidate>
+        <div class="grid">
+          <div class="field"><label for="schoolName">School name</label>
+            <input id="schoolName" type="text" maxlength="80" placeholder="ABC Higher Secondary School" autocomplete="off">
+            <small class="error" id="err-schoolName" role="alert"></small></div>
+          <div class="field"><label for="className">Class / Grade</label>
+            <input id="className" type="text" maxlength="20" placeholder="XII" autocomplete="off">
+            <small class="error" id="err-className" role="alert"></small></div>
+          <div class="field"><label for="section">Section</label>
+            <input id="section" type="text" maxlength="10" placeholder="A" autocomplete="off">
+            <small class="error" id="err-section" role="alert"></small></div>
+          <div class="field"><label for="academicYear">Academic year</label>
+            <input id="academicYear" type="text" maxlength="20" placeholder="2026-2027" autocomplete="off">
+            <small class="error" id="err-academicYear" role="alert"></small></div>
+        </div>
+
+        <h3>Timetable settings</h3>
+        <div class="grid">
+          <div class="field"><label for="numDays">Number of days</label>
+            <select id="numDays"><option value="5">5 Days (Mon–Fri)</option><option value="6" selected>6 Days (Mon–Sat)</option></select>
+            <small class="error" id="err-numDays" role="alert"></small></div>
+          <div class="field"><label for="numPeriods">Number of periods</label>
+            <select id="numPeriods"><option>5</option><option>6</option><option>7</option><option selected>8</option><option>9</option></select>
+            <small class="error" id="err-numPeriods" role="alert"></small></div>
+          <div class="field"><label for="startTime">Start time</label>
+            <input id="startTime" type="time" value="09:00">
+            <small class="error" id="err-startTime" role="alert"></small></div>
+          <div class="field"><label for="periodDuration">Period length (minutes)</label>
+            <input id="periodDuration" type="number" min="20" max="120" value="45">
+            <small class="error" id="err-periodDuration" role="alert"></small></div>
+          <div class="field"><label for="breakAfter">Break after period (0 = no break)</label>
+            <input id="breakAfter" type="number" min="0" max="8" value="3">
+            <small class="error" id="err-breakAfter" role="alert"></small></div>
+          <div class="field"><label for="breakDuration">Break length (minutes)</label>
+            <input id="breakDuration" type="number" min="5" max="60" value="15">
+            <small class="error" id="err-breakDuration" role="alert"></small></div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="generateBtn"><i class="fa-solid fa-table" aria-hidden="true"></i> Generate Timetable</button>
+          <button type="button" class="btn" id="sampleBtn"><i class="fa-solid fa-flask" aria-hidden="true"></i> Load Sample Timetable</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card timetable-card" id="timetableCard" aria-labelledby="ttTitle">
+      <div class="card-head no-print">
+        <h2 id="ttTitle">Your weekly timetable</h2>
+        <span class="saved-label" id="lastSaved">Last saved: never</span>
+      </div>
+
+      <div class="toolbar no-print" role="toolbar" aria-label="Timetable actions">
+        <button type="button" class="btn" id="quickFillBtn"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Quick Fill</button>
+        <button type="button" class="btn" id="saveBtn"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Timetable</button>
+        <button type="button" class="btn" id="loadBtn"><i class="fa-solid fa-folder-open" aria-hidden="true"></i> Load Timetable</button>
+        <button type="button" class="btn" id="printBtn"><i class="fa-solid fa-print" aria-hidden="true"></i> Print</button>
+        <button type="button" class="btn" id="pdfBtn"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Download PDF</button>
+        <button type="button" class="btn btn-danger" id="clearBtn"><i class="fa-solid fa-trash" aria-hidden="true"></i> Clear All</button>
+      </div>
+
+      <div id="printArea" class="print-area">
+        <div id="ttInfo" class="tt-info" hidden></div>
+        <div id="tableWrap" class="table-wrap"></div>
+      </div>
+      <p class="hint no-print" id="tableHint" hidden>Tip: click any box in the timetable to add or edit a subject.</p>
+    </section>
+
+    <section class="card no-print" aria-labelledby="howTitle">
+      <h2 id="howTitle">How it works</h2>
+      <ol class="steps">
+        <li>Fill in the class details and choose days, periods and break.</li>
+        <li>Select <strong>Generate Timetable</strong> to see the weekly table.</li>
+        <li>Click any box to enter the subject, teacher and room, or use <strong>Quick Fill</strong>.</li>
+        <li>Save it in your browser, print it, or download it as a PDF.</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="site-footer no-print">
+    <div class="container">
+      <strong>School Timetable Generator</strong>
+      <p>Designed for simple and organized timetable management.</p>
+    </div>
+  </footer>
+
+  <!-- Edit slot dialog -->
+  <dialog id="slotDialog" aria-labelledby="slotTitle">
+    <form id="slotForm" novalidate>
+      <h2 id="slotTitle">Edit period</h2>
+      <p class="dialog-sub" id="slotSub"></p>
+      <div class="field"><label for="slotSubjectSelect">Subject</label>
+        <select id="slotSubjectSelect"></select></div>
+      <div class="field" id="customWrap" hidden><label for="slotSubjectCustom">Custom subject name</label>
+        <input id="slotSubjectCustom" type="text" maxlength="40" autocomplete="off"></div>
+      <div class="field"><label for="slotTeacher">Teacher (optional)</label>
+        <input id="slotTeacher" type="text" maxlength="40" placeholder="Mr. Ravi" autocomplete="off"></div>
+      <div class="field"><label for="slotRoom">Room (optional)</label>
+        <input id="slotRoom" type="text" maxlength="20" placeholder="101" autocomplete="off"></div>
+      <small class="error" id="err-slot" role="alert"></small>
+      <div class="dialog-actions">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn" id="slotCancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="slotClear">Clear</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Confirm clear dialog -->
+  <dialog id="confirmDialog" aria-labelledby="confirmTitle">
+    <h2 id="confirmTitle">Clear the whole timetable?</h2>
+    <p class="dialog-sub">All subjects, teachers and rooms will be removed. Your saved copy stays unchanged.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-danger" id="confirmYes">Clear All</button>
+      <button type="button" class="btn" id="confirmNo">Cancel</button>
+    </div>
+  </dialog>
+
+  <div id="toasts" class="toasts no-print" aria-live="polite"></div>
+
+  <!-- html2pdf.js (client-side PDF export) loaded from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+/* ===== School Timetable Generator - script.js =====
+ * Sections: 1 data, 2 helpers, 3 validation, 4 timetable building,
+ * 5 rendering, 6 edit dialog, 7 save/load, 8 print & PDF, 9 buttons.
+ */
+(function () {
+  'use strict';
+
+  /* ---------- 1. DATA ---------- */
+  var DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MAX_PERIODS = 9;
+  var STORAGE_KEY = 'schoolTimetable.v1';
+
+  // Default subjects (used by Quick Fill and the subject dropdown) with a fixed colour hue each
+  var DEFAULT_SUBJECTS = [
+    'Mathematics', 'Physics', 'Chemistry', 'Biology', 'English',
+    'Computer Science', 'Tamil', 'Social Science', 'Physical Education', 'Library'
+  ];
+  var SUBJECT_HUES = {
+    'mathematics': 215, 'physics': 265, 'chemistry': 160, 'biology': 100, 'english': 20,
+    'computer science': 185, 'tamil': 330, 'social science': 45, 'physical education': 290, 'library': 0
+  };
+
+  // Teacher and room for each subject, used by the sample timetable
+  var SAMPLE_INFO = {
+    'Mathematics': ['Mr. Ravi Kumar', '101'],
+    'Physics': ['Ms. Priya Nair', '102'],
+    'Chemistry': ['Dr. Anitha Rao', '103'],
+    'English': ['Mrs. Meena Joseph', '104'],
+    'Computer Science': ['Mr. Arun Prakash', 'Lab 1'],
+    'Tamil': ['Mrs. Lakshmi Devi', '105'],
+    'Biology': ['Ms. Divya Menon', '106'],
+    'Physical Education': ['Mr. Suresh Babu', 'Ground']
+  };
+  var SAMPLE_SCHEDULE = [
+    ['Mathematics', 'Physics', 'Chemistry', 'English', 'Computer Science', 'Tamil'],
+    ['Physics', 'Mathematics', 'English', 'Chemistry', 'Computer Science', 'Biology'],
+    ['Chemistry', 'English', 'Mathematics', 'Physics', 'Biology', 'Computer Science'],
+    ['English', 'Physics', 'Chemistry', 'Mathematics', 'Tamil', 'Computer Science'],
+    ['Mathematics', 'Chemistry', 'Physics', 'English', 'Computer Science', 'Biology'],
+    ['Computer Science', 'Mathematics', 'English', 'Physics', 'Chemistry', 'Physical Education']
+  ];
+
+  // Setup form fields (ids are shared by the inputs and their error messages)
+  var FIELD_IDS = ['schoolName', 'className', 'section', 'academicYear', 'numDays', 'numPeriods',
+    'startTime', 'periodDuration', 'breakAfter', 'breakDuration'];
+
+  // timetable = { settings: {...}, grid: grid[dayIndex][periodIndex] = {subject, teacher, room} }
+  var timetable = null;
+  var editing = null; // the slot being edited: { day, period }
+
+  /* ---------- 2. HELPERS ---------- */
+  function $(id) { return document.getElementById(id); }
+
+  function showToast(message, isError) {
+    var toast = document.createElement('div');
+    toast.className = 'toast' + (isError ? ' error' : '');
+    toast.textContent = message;
+    $('toasts').appendChild(toast);
+    setTimeout(function () { toast.remove(); }, 3200);
+  }
+
+  function emptyGrid() {
+    var grid = [];
+    for (var d = 0; d < DAYS.length; d++) {
+      var row = [];
+      for (var p = 0; p < MAX_PERIODS; p++) { row.push({ subject: '', teacher: '', room: '' }); }
+      grid.push(row);
+    }
+    return grid;
+  }
+
+  // Make sure data coming from localStorage has the right shape and length
+  function cleanGrid(raw) {
+    var grid = emptyGrid();
+    if (!Array.isArray(raw)) { return grid; }
+    for (var d = 0; d < DAYS.length; d++) {
+      for (var p = 0; p < MAX_PERIODS; p++) {
+        var cell = raw[d] && raw[d][p];
+        if (cell && typeof cell === 'object') {
+          grid[d][p] = {
+            subject: String(cell.subject || '').trim().slice(0, 40),
+            teacher: String(cell.teacher || '').trim().slice(0, 40),
+            room: String(cell.room || '').trim().slice(0, 20)
+          };
+        }
+      }
+    }
+    return grid;
+  }
+
+  function toMinutes(timeText) {
+    var parts = timeText.split(':');
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+  }
+
+  function formatTime(totalMinutes) {
+    var minutes = totalMinutes % 1440;
+    var hours = Math.floor(minutes / 60);
+    var suffix = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return hours + ':' + String(minutes % 60).padStart(2, '0') + ' ' + suffix;
+  }
+
+  // Same subject name -> same colour. Default subjects have fixed hues; custom ones use a hash.
+  function subjectColors(subject) {
+    var key = subject.toLowerCase();
+    var hue = SUBJECT_HUES[key];
+    if (hue === undefined) {
+      hue = 0;
+      for (var i = 0; i < key.length; i++) { hue = (hue * 31 + key.charCodeAt(i)) % 360; }
+    }
+    return { bg: 'hsl(' + hue + ', 55%, 92%)', bar: 'hsl(' + hue + ', 45%, 45%)' };
+  }
+
+  /* ---------- 3. VALIDATION ---------- */
+  function readSettings() {
+    var raw = {};
+    FIELD_IDS.forEach(function (id) { raw[id] = $(id).value.trim(); });
+
+    var errors = {};
+    var s = {
+      schoolName: raw.schoolName, className: raw.className, section: raw.section,
+      academicYear: raw.academicYear, startTime: raw.startTime,
+      numDays: parseInt(raw.numDays, 10), numPeriods: parseInt(raw.numPeriods, 10),
+      periodDuration: Number(raw.periodDuration), breakAfter: Number(raw.breakAfter),
+      breakDuration: Number(raw.breakDuration)
+    };
+
+    if (!s.schoolName) { errors.schoolName = 'Please enter a school name.'; }
+    if (!s.className) { errors.className = 'Please enter the class or grade.'; }
+    if (s.numDays !== 5 && s.numDays !== 6) { errors.numDays = 'Choose 5 or 6 days.'; }
+    if (!(s.numPeriods >= 5 && s.numPeriods <= MAX_PERIODS)) { errors.numPeriods = 'Choose 5 to 9 periods.'; }
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(s.startTime)) { errors.startTime = 'Enter a valid start time.'; }
+    if (!Number.isInteger(s.periodDuration) || s.periodDuration < 20 || s.periodDuration > 120) {
+      errors.periodDuration = 'Enter 20 to 120 minutes.';
+    }
+    if (!Number.isInteger(s.breakAfter) || s.breakAfter < 0 || s.breakAfter >= s.numPeriods) {
+      errors.breakAfter = 'Enter 0, or a period before the last one.';
+    }
+    if (!Number.isInteger(s.breakDuration) || s.breakDuration < 5 || s.breakDuration > 60) {
+      errors.breakDuration = 'Enter 5 to 60 minutes.';
+    }
+    return { settings: s, errors: errors };
+  }
+
+  function showErrors(errors) {
+    FIELD_IDS.forEach(function (id) {
+      $('err-' + id).textContent = errors[id] || '';
+      $(id).setAttribute('aria-invalid', errors[id] ? 'true' : 'false');
+    });
+  }
+
+  /* ---------- 4. TIMETABLE BUILDING ---------- */
+  // Turns settings into a list of rows: periods with times, plus the break row
+  function buildRows(s) {
+    var rows = [];
+    var time = toMinutes(s.startTime);
+    for (var p = 1; p <= s.numPeriods; p++) {
+      rows.push({ type: 'period', index: p - 1, label: formatTime(time) + ' – ' + formatTime(time + s.periodDuration) });
+      time += s.periodDuration;
+      if (p === s.breakAfter) {
+        rows.push({ type: 'break', label: formatTime(time) + ' – ' + formatTime(time + s.breakDuration), minutes: s.breakDuration });
+        time += s.breakDuration;
+      }
+    }
+    return rows;
+  }
+
+  function generateTimetable() {
+    var result = readSettings();
+    showErrors(result.errors);
+    var firstError = Object.keys(result.errors)[0];
+    if (firstError) {
+      showToast(result.errors[firstError], true);
+      $(firstError).focus();
+      return;
+    }
+    // Keep existing entries when the user regenerates with new settings
+    timetable = { settings: result.settings, grid: timetable ? timetable.grid : emptyGrid() };
+    render();
+    showToast('Timetable generated successfully.');
+    $('timetableCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function fillSetupForm(s) {
+    FIELD_IDS.forEach(function (id) { $(id).value = s[id] === undefined ? '' : s[id]; });
+  }
+
+  /* ---------- 5. RENDERING (built with createElement, never innerHTML) ---------- */
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) { node.className = className; }
+    if (text !== undefined) { node.textContent = text; }
+    return node;
+  }
+
+  function render() {
+    var wrap = $('tableWrap');
+    wrap.textContent = '';
+    var hasTable = timetable !== null;
+    $('ttInfo').hidden = !hasTable;
+    $('tableHint').hidden = !hasTable;
+
+    if (!hasTable) {
+      wrap.appendChild(buildEmptyState());
+      return;
+    }
+    renderInfo();
+    wrap.appendChild(buildTable());
+  }
+
+  function buildEmptyState() {
+    var box = el('div', 'empty-state');
+    box.appendChild(el('div', 'empty-icon', '📅'));
+    box.lastChild.setAttribute('aria-hidden', 'true');
+    box.appendChild(el('h3', '', 'No timetable created yet'));
+    box.appendChild(el('p', '', 'Enter your class details and generate your weekly timetable.'));
+    var button = el('button', 'btn btn-primary', 'Create Timetable');
+    button.type = 'button';
+    button.addEventListener('click', function () {
+      $('setupCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('schoolName').focus();
+    });
+    box.appendChild(button);
+    return box;
+  }
+
+  function renderInfo() {
+    var s = timetable.settings;
+    var info = $('ttInfo');
+    info.textContent = '';
+    info.appendChild(el('div', 'tt-school', s.schoolName));
+    info.appendChild(el('span', '', 'Class: ' + s.className));
+    if (s.section) { info.appendChild(el('span', '', 'Section: ' + s.section)); }
+    if (s.academicYear) { info.appendChild(el('span', '', 'Academic Year: ' + s.academicYear)); }
+  }
+
+  function buildTable() {
+    var s = timetable.settings;
+    var table = el('table', 'timetable');
+    table.setAttribute('aria-label', 'Weekly timetable');
+
+    // Header row: Time + one column per working day
+    var headRow = el('tr');
+    var timeHead = el('th', '', 'Time');
+    timeHead.scope = 'col';
+    headRow.appendChild(timeHead);
+    for (var d = 0; d < s.numDays; d++) {
+      var dayHead = el('th', '', DAYS[d]);
+      dayHead.scope = 'col';
+      headRow.appendChild(dayHead);
+    }
+    table.appendChild(el('thead')).appendChild(headRow);
+
+    // Body: one row per period, plus the break row
+    var body = el('tbody');
+    buildRows(s).forEach(function (row) {
+      var tr = el('tr');
+      var th = el('th');
+      th.scope = 'row';
+      if (row.type === 'break') {
+        th.textContent = row.label;
+        tr.appendChild(th);
+        var breakCell = el('td', 'break-cell', '☕ BREAK (' + row.minutes + ' min)');
+        breakCell.colSpan = s.numDays;
+        tr.appendChild(breakCell);
+      } else {
+        th.appendChild(el('span', '', 'Period ' + (row.index + 1)));
+        th.appendChild(document.createTextNode(row.label));
+        tr.appendChild(th);
+        for (var day = 0; day < s.numDays; day++) {
+          var td = el('td');
+          td.appendChild(buildSlot(day, row.index));
+          tr.appendChild(td);
+        }
+      }
+      body.appendChild(tr);
+    });
+    table.appendChild(body);
+    return table;
+  }
+
+  function buildSlot(day, period) {
+    var entry = timetable.grid[day][period];
+    var button = el('button', 'slot');
+    button.type = 'button';
+    button.dataset.day = day;
+    button.dataset.period = period;
+
+    if (!entry.subject) {
+      button.classList.add('slot-empty');
+      button.textContent = '+ Add';
+      button.setAttribute('aria-label', 'Add subject for ' + DAYS[day] + ', period ' + (period + 1));
+      return button;
+    }
+    var colors = subjectColors(entry.subject);
+    button.style.setProperty('--bg-slot', colors.bg);
+    button.style.setProperty('--bar', colors.bar);
+    button.appendChild(el('div', 'slot-subject', entry.subject));
+    if (entry.teacher) { button.appendChild(el('div', 'slot-meta', entry.teacher)); }
+    if (entry.room) { button.appendChild(el('div', 'slot-meta', 'Room ' + entry.room)); }
+    button.setAttribute('aria-label', DAYS[day] + ', period ' + (period + 1) + ': ' + entry.subject + '. Click to edit.');
+    return button;
+  }
+
+  /* ---------- 6. EDIT DIALOG ---------- */
+  function fillSubjectDropdown() {
+    var select = $('slotSubjectSelect');
+    select.textContent = '';
+    select.appendChild(new Option('— No subject —', ''));
+    DEFAULT_SUBJECTS.forEach(function (name) { select.appendChild(new Option(name, name)); });
+    select.appendChild(new Option('Custom subject…', '__custom__'));
+  }
+
+  function toggleCustomField() {
+    var isCustom = $('slotSubjectSelect').value === '__custom__';
+    $('customWrap').hidden = !isCustom;
+    if (isCustom) { $('slotSubjectCustom').focus(); }
+  }
+
+  function openSlotDialog(day, period) {
+    editing = { day: day, period: period };
+    var entry = timetable.grid[day][period];
+    $('slotSub').textContent = DAYS[day] + ' · Period ' + (period + 1);
+    $('err-slot').textContent = '';
+
+    var select = $('slotSubjectSelect');
+    if (entry.subject && DEFAULT_SUBJECTS.indexOf(entry.subject) === -1) {
+      select.value = '__custom__';
+      $('slotSubjectCustom').value = entry.subject;
+    } else {
+      select.value = entry.subject;
+      $('slotSubjectCustom').value = '';
+    }
+    $('customWrap').hidden = select.value !== '__custom__';
+    $('slotTeacher').value = entry.teacher;
+    $('slotRoom').value = entry.room;
+    $('slotDialog').showModal();
+  }
+
+  function saveSlot(event) {
+    event.preventDefault();
+    var select = $('slotSubjectSelect').value;
+    var subject = (select === '__custom__' ? $('slotSubjectCustom').value : select).trim();
+    var teacher = $('slotTeacher').value.trim();
+    var room = $('slotRoom').value.trim();
+
+    if (!subject && (teacher || room)) {
+      $('err-slot').textContent = 'Please enter a subject name, or clear the teacher and room.';
+      return;
+    }
+    timetable.grid[editing.day][editing.period] = { subject: subject, teacher: teacher, room: room };
+    $('slotDialog').close();
+    render();
+    showToast(subject ? 'Entry saved.' : 'Entry cleared.');
+  }
+
+  function clearSlot() {
+    timetable.grid[editing.day][editing.period] = { subject: '', teacher: '', room: '' };
+    $('slotDialog').close();
+    render();
+    showToast('Entry cleared.');
+  }
+
+  /* ---------- 7. QUICK FILL, SAMPLE, SAVE / LOAD ---------- */
+  function requireTimetable() {
+    if (timetable) { return true; }
+    showToast('Please generate a timetable first.', true);
+    return false;
+  }
+
+  // Fill only the empty boxes by cycling through the default subjects
+  function quickFill() {
+    if (!requireTimetable()) { return; }
+    var s = timetable.settings;
+    for (var d = 0; d < s.numDays; d++) {
+      for (var p = 0; p < s.numPeriods; p++) {
+        var cell = timetable.grid[d][p];
+        if (!cell.subject) { cell.subject = DEFAULT_SUBJECTS[(d * 3 + p) % DEFAULT_SUBJECTS.length]; }
+      }
+    }
+    render();
+    showToast('Empty periods filled with default subjects.');
+  }
+
+  function loadSample() {
+    var settings = {
+      schoolName: 'ABC Higher Secondary School', className: 'XII', section: 'A', academicYear: '2026-2027',
+      numDays: 6, numPeriods: 6, startTime: '09:00', periodDuration: 45, breakAfter: 3, breakDuration: 15
+    };
+    var grid = emptyGrid();
+    SAMPLE_SCHEDULE.forEach(function (daySubjects, d) {
+      daySubjects.forEach(function (subject, p) {
+        grid[d][p] = { subject: subject, teacher: SAMPLE_INFO[subject][0], room: SAMPLE_INFO[subject][1] };
+      });
+    });
+    fillSetupForm(settings);
+    showErrors({});
+    timetable = { settings: settings, grid: grid };
+    render();
+    showToast('Sample timetable loaded.');
+  }
+
+  function formatSavedTime(isoText) {
+    var date = new Date(isoText);
+    return isNaN(date.getTime()) ? 'unknown' : date.toLocaleString();
+  }
+
+  function readSaved() {
+    try {
+      var text = localStorage.getItem(STORAGE_KEY);
+      if (!text) { return null; }
+      var data = JSON.parse(text);
+      return data && data.settings && data.grid ? data : null;
+    } catch (error) {
+      return null; // storage blocked or data damaged
+    }
+  }
+
+  function saveTimetable() {
+    if (!requireTimetable()) { return; }
+    var savedAt = new Date().toISOString();
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ settings: timetable.settings, grid: timetable.grid, savedAt: savedAt }));
+      $('lastSaved').textContent = 'Last saved: ' + formatSavedTime(savedAt);
+      $('restoreBar').hidden = true;
+      showToast('Timetable saved successfully.');
+    } catch (error) {
+      showToast('Could not save. Your browser may be blocking storage.', true);
+    }
+  }
+
+  function loadTimetable() {
+    var saved = readSaved();
+    if (!saved) {
+      showToast('No saved timetable found.', true);
+      return;
+    }
+    fillSetupForm(saved.settings);
+    var result = readSettings();
+    showErrors(result.errors);
+    if (Object.keys(result.errors).length) {
+      showToast('The saved timetable has invalid settings.', true);
+      return;
+    }
+    timetable = { settings: result.settings, grid: cleanGrid(saved.grid) };
+    render();
+    $('restoreBar').hidden = true;
+    showToast('Saved timetable loaded.');
+  }
+
+  function clearAll() {
+    $('confirmDialog').close();
+    if (!timetable) { return; }
+    timetable.grid = emptyGrid();
+    render();
+    showToast('Timetable cleared.');
+  }
+
+  /* ---------- 8. PRINT & PDF ---------- */
+  function printTimetable() {
+    if (!requireTimetable()) { return; }
+    window.print();
+  }
+
+  function downloadPdf() {
+    if (!requireTimetable()) { return; }
+    if (typeof window.html2pdf === 'undefined') {
+      showToast('PDF tool could not load. Check your internet connection.', true);
+      return;
+    }
+    // Copy the timetable into a plain box (not in the page) so it is captured at full width
+    var stage = document.createElement('div');
+    stage.className = 'pdf-export';
+    stage.appendChild($('printArea').cloneNode(true));
+
+    var options = {
+      margin: 8, filename: 'School_Timetable.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, windowWidth: 1152 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+    window.html2pdf().set(options).from(stage).save()
+      .then(function () { showToast('PDF downloaded.'); })
+      .catch(function () { showToast('Could not create the PDF. Please try again.', true); });
+  }
+
+  /* ---------- 9. START-UP & BUTTONS ---------- */
+  function showSavedInfo() {
+    var saved = readSaved();
+    if (!saved) { return; }
+    var when = formatSavedTime(saved.savedAt);
+    $('lastSaved').textContent = 'Last saved: ' + when;
+    $('restoreText').textContent = 'A saved timetable was found (saved ' + when + ').';
+    $('restoreBar').hidden = false;
+  }
+
+  function init() {
+    fillSubjectDropdown();
+    $('setupForm').addEventListener('submit', function (e) { e.preventDefault(); generateTimetable(); });
+    $('sampleBtn').addEventListener('click', loadSample);
+    $('quickFillBtn').addEventListener('click', quickFill);
+    $('saveBtn').addEventListener('click', saveTimetable);
+    $('loadBtn').addEventListener('click', loadTimetable);
+    $('restoreBtn').addEventListener('click', loadTimetable);
+    $('printBtn').addEventListener('click', printTimetable);
+    $('pdfBtn').addEventListener('click', downloadPdf);
+    $('clearBtn').addEventListener('click', function () {
+      if (requireTimetable()) { $('confirmDialog').showModal(); }
+    });
+    $('confirmYes').addEventListener('click', clearAll);
+    $('confirmNo').addEventListener('click', function () { $('confirmDialog').close(); });
+
+    $('slotForm').addEventListener('submit', saveSlot);
+    $('slotCancel').addEventListener('click', function () { $('slotDialog').close(); });
+    $('slotClear').addEventListener('click', clearSlot);
+    $('slotSubjectSelect').addEventListener('change', toggleCustomField);
+
+    // One click listener for every timetable box
+    $('tableWrap').addEventListener('click', function (e) {
+      var slot = e.target.closest('.slot');
+      if (slot && timetable) { openSlotDialog(Number(slot.dataset.day), Number(slot.dataset.period)); }
+    });
+
+    render();
+    showSavedInfo();
+  }
+
+  init();
+})();
+  </script>
+</body>
+</html>
